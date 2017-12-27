@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
 #include <mpi.h>
+#include <time.h>
 
+#define PI 3.14159265358979323846
 typedef struct _body 
 {
     float x , y ; // p o s i t i o n
@@ -14,16 +15,16 @@ typedef struct _body
 
 static const float DELTA_TIME = 0.2;
 static const int NUMBER_OF_BODIES = 100;
+static const float SIMULATION_SOFTENING_LENTH = 100.0f;
+static const float SIMULATION_SOFTENING_LENTH_SQUARED = 10000.0f;
 
-void integrate(body *body, float DELTA_TIME );
-body * GenrateDebugData (int planetCount);
-void SimulateWithBruteforce ();
-Vector2 CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay);
-
+body *GenerateDebugData (int NUMBER_OF_BODIES);
+void CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay);
+static void integratebodies();
 
 int main(int argc, char **argv) {
 
-    body bodies[NUMBER_OF_BODIES];
+    body *bodies;
 
     MPI_Init(&argc, &argv);
 
@@ -33,18 +34,18 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
     if(rank == 0) {
-        *bodies = GenerateDebugData(NUMBER_OF_BODIES);
-        cout << NUMBER_OF_BODIES << endl;
+        bodies = GenerateDebugData(NUMBER_OF_BODIES);
+        printf("%d/n",NUMBER_OF_BODIES);
     }
     
     for(size_t i = 0 ; i < NUMBER_OF_BODIES; ++i ) 
     {
         float total_ax = 0.0f, total_ay = 0.0f;
-        for(size_t j = 0 ; j < N; ++j ) 
+        for(size_t j = 0 ; j < NUMBER_OF_BODIES; ++j ) 
         {
             if( i == j ) { continue ; }
             float ax, ay;
-            calculate_newton_gravity_acceleration(&bodies[i], &bodies[j], &ax , &ay);
+            CalculateNewtonGravityAcceleration(&bodies[i], &bodies[j], &ax , &ay);
             total_ax += ax;
             total_ay += ay;
         }
@@ -52,70 +53,36 @@ int main(int argc, char **argv) {
         bodies[i].ay = total_ay;
     }
 
-    for(size_t i = 0 ; i < N; ++i )
-    {
-        integrate(&bodies[i], DELTA_TIME);
-    }
-    
+    integratebodies(bodies);
+
     MPI_Finalize();
 
     return 0;
 }
 
-void SimulateWithBruteforce () {
-    if (!IntegrateMovement) return;
-
-    for (size_t i = 0; i < NUMBER_OF_BODIES; ++i) 
-    {
-        body planet = bodies[i];
-        if (!planet.IsAlive) continue;
-
-        Vector2 acceleration = Vector2.zero;
-        foreach (PlanetController anotherPlanet in planets) 
-        {
-            if (planet == anotherPlanet || !anotherPlanet.IsAlive) continue;
-            acceleration += CalculateNewtonGravityAcceleration (planet, anotherPlanet);
-        }
-
-        planet.Acceleration = acceleration;
-    }
+static void integratebodies (body *bodies)
+{
+	for (size_t i = 0; i < NUMBER_OF_BODIES; ++i) {
+		bodies[i].vx += bodies[i].ax * DELTA_TIME ;
+		bodies[i].vy += bodies[i].ay * DELTA_TIME ;
+		bodies[i].x += bodies[i].vx * DELTA_TIME ;
+		bodies[i].y += bodies[i].vy * DELTA_TIME ;
+	}
 }
 
-Vector2 CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay) {
-    ++interactions;
-    Vector2 acceleration = Vector2.zero;
-
-    Vector2 galacticPlaneR = secondBody.Position - firstBody.Position;
-
-    float distanceSquared = galacticPlaneR.sqrMagnitude + simulationSofteningLengthSquared;
-    float distanceSquaredCubed = distanceSquared * distanceSquared * distanceSquared;
-    float inverse = 1.0f / Mathf.Sqrt (distanceSquaredCubed);
-    float scale = secondBody.Mass * inverse;
-    acceleration += galacticPlaneR * scale;
-
-    return acceleration;
-}
-
-void integrate(body *body) {
-    body−>vx += body−>ax * DELTA_TIME ;
-    body−>vy += body−>ay * DELTA_TIME ;
-    body−>x += body−>vx * DELTA_TIME ;
-    body−>y += body−>vy * DELTA_TIME ;
-}
-
-body * GenrateDebugData (int planetCount) {
+body *GenerateDebugData (int NUMBER_OF_BODIES) {
 
     srand(time(NULL));
 
     const float accelerationScale = 100.0f;
     const float galacticPlaneY = 0.0f;
 
-    body *result = (body *) malloc(sizeof(*result) * planetCount);
+    body *result = (body *) malloc(sizeof(*result) * NUMBER_OF_BODIES);
 
-    for (int i = 0; i < planetCount; ++i)
+    for (int i = 0; i < NUMBER_OF_BODIES; ++i)
     {
         float rnd_val = (float)rand() / (float)(RAND_MAX);
-        float angle = ((float) i / planetCount) * 2.0f * M_PI + ((rnd_val - 0.5f) * 0.5f);
+        float angle = ((float) i / NUMBER_OF_BODIES) * 2.0f * PI + ((rnd_val - 0.5f) * 0.5f);
 
         body *planet = (body *) malloc(sizeof(*planet));
 		planet->mass = (rand() + 0.5f) * 100000.0f;
@@ -132,3 +99,18 @@ body * GenrateDebugData (int planetCount) {
     	return result;
 }
 
+void CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay) {
+    float galacticPlaneX = b->x - a->x;
+	float galacticPlaneY = b->y - a->y;
+
+	float distanceSquared = (galacticPlaneX * galacticPlaneX) + (galacticPlaneY * galacticPlaneY) + SIMULATION_SOFTENING_LENTH_SQUARED;
+
+	float distanceSquaredCubed = distanceSquared * distanceSquared * distanceSquared;
+
+	float inverse = 1.0f / sqrtf(distanceSquaredCubed);
+
+	float scale = b->mass * inverse;
+
+	*ax = galacticPlaneX * scale;
+	*ay = galacticPlaneY * scale;
+}

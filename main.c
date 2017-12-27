@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
+#include <math.h>
 #include <mpi.h>
 
 typedef struct _body 
@@ -13,10 +13,10 @@ typedef struct _body
 } body ;
 
 static const float DELTA_TIME = 0.2;
-static const int NUMBER_OF_BODIES = 50;
+static const int NUMBER_OF_BODIES = 100;
 
 void integrate(body *body, float DELTA_TIME );
-void GenerateDebugData (int planetCount, *body bodies);
+body * GenrateDebugData (int planetCount);
 void SimulateWithBruteforce ();
 Vector2 CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay);
 
@@ -32,10 +32,9 @@ int main(int argc, char **argv) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    static const int ITEMS_PER_PROCESS = NUMBER_OF_BODIES / world_size;
-
     if(rank == 0) {
-        GenerateDebugData(NUMBER_OF_BODIES, bodies);
+        *bodies = GenerateDebugData(NUMBER_OF_BODIES);
+        cout << NUMBER_OF_BODIES << endl;
     }
     
     for(size_t i = 0 ; i < NUMBER_OF_BODIES; ++i ) 
@@ -104,43 +103,32 @@ void integrate(body *body) {
     body−>y += body−>vy * DELTA_TIME ;
 }
 
-void GenerateDebugData (int planetCount) {
+body * GenrateDebugData (int planetCount) {
+
+    srand(time(NULL));
+
     const float accelerationScale = 100.0f;
     const float galacticPlaneY = 0.0f;
-    
-    for (int i = 0; i < planetCount; ++i) {
-        float angle =
-            ((float) i / planetCount) * 2.0f * Mathf.PI +
-            ((Random.value - 0.5f) * 0.5f);
 
-        body planet = Instantiate (
-                    PlanetTemplate,
-                    new Vector3 (
-                        Random.value,
-                        galacticPlaneY,
-                        Random.value
-                    ),
-                    Quaternion.identity
-                );
+    body *result = (body *) malloc(sizeof(*result) * planetCount);
 
-            planet.GetComponent<Rigidbody> ().velocity =
-                new Vector3 (
-                    Mathf.Cos (angle),
-                    0.0f,
-                    Mathf.Sin (angle)
-                ) * accelerationScale * Random.value;
+    for (int i = 0; i < planetCount; ++i)
+    {
+        float rnd_val = (float)rand() / (float)(RAND_MAX);
+        float angle = ((float) i / planetCount) * 2.0f * M_PI + ((rnd_val - 0.5f) * 0.5f);
 
-            float initialMass =
-                planet.Mass;
-            planet.Mass =
-                initialMass * Random.value + initialMass * 0.5f;
+        body *planet = (body *) malloc(sizeof(*planet));
+		planet->mass = (rand() + 0.5f) * 100000.0f;
+		planet->ax = 0;
+		planet->ay = 0;
+		planet->vx = cos(angle) * accelerationScale * rand();
+		planet->vy = sin(angle) * accelerationScale * rand();
 
-            float scale =
-                (planet.Mass / (initialMass * 1.5f)) + 0.1f;
-            planet.transform.localScale =
-                new Vector3 (scale, scale, scale);
-
-            SimulatorInstance.AddPlanet(planet);
-        }
+		planet->x = (float)rand() / (float)(RAND_MAX);
+		planet->y = galacticPlaneY;
+		result[i] = *planet;
     }
+
+    	return result;
+}
 

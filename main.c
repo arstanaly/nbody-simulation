@@ -52,13 +52,26 @@ int main(int argc, char **argv) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    int items_per_process = NUMBER_OF_BODIES / world_size; 
+    int *sendcounts = malloc(sizeof(int) * world_size);;    // array describing how many elements to send to each process
+    int *displs = malloc(sizeof(body) * world_size);;        // array describing the displacements where each segment begins
+    int rem = NUMBER_OF_BODIES % world_size;
+    int sum = 0; 
+    for (int i = 0; i < world_size; i++) {
+        sendcounts[i] = NUMBER_OF_BODIES / world_size;
+        if (rem > 0) {
+            sendcounts[i]++;
+            rem--;
+        }
+        displs[i] = sum;
+        sum += sendcounts[i];
+    }
+    
     for (float time_active = 0; time_active < DURATION; time_active += DELTA_TIME) {
-        body *local_bodies =  (body *) malloc(sizeof(*local_bodies) * items_per_process);
+        body *local_bodies =  (body *) malloc(sizeof(*local_bodies) * sendcounts[rank]);
 
-        MPI_Scatter(bodies, items_per_process, MPI_BODY, local_bodies, items_per_process, MPI_BODY, 0, MPI_COMM_WORLD);
+        MPI_Scatterv(bodies, sendcounts, displs, MPI_BODY, local_bodies, sendcounts[rank], MPI_BODY, 0, MPI_COMM_WORLD);
 
-        for(size_t i = 0 ; i < items_per_process; ++i ) 
+        for(size_t i = 0 ; i < sendcounts[rank]; ++i ) 
         {
             float total_ax = 0.0f, total_ay = 0.0f;
             for(size_t j = 0 ; j < NUMBER_OF_BODIES; ++j ) 
@@ -73,7 +86,7 @@ int main(int argc, char **argv) {
             local_bodies[i].ay = total_ay;
         }
 
-        MPI_Gather(&local_bodies, 1, MPI_BODY, bodies, items_per_process, MPI_BODY, 0, MPI_COMM_WORLD);
+        MPI_Gatherv(&local_bodies, sendcounts[rank], MPI_BODY, bodies, sendcounts, displs, MPI_BODY, 0, MPI_COMM_WORLD);
 
         MPI_Barrier(MPI_COMM_WORLD);
 	    free(local_bodies);

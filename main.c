@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #include <mpi.h>
+#include "ips_utils.h"
 
 typedef struct _body 
 {
@@ -14,15 +15,18 @@ typedef struct _body
 
 static const float DELTA_TIME = 0.2;
 static const int NUMBER_OF_BODIES = 50;
+static const int ITEMS_PER_PROCESS = NUMBER_OF_BODIES / ips_utils_get_number_of_cpu_cores();
 
 void integrate(body *body, float DELTA_TIME );
-void GenerateDebugData (int planetCount);
+void GenerateDebugData (int planetCount, *body bodies);
 void SimulateWithBruteforce ();
 Vector2 CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay);
-body bodies[NUMBER_OF_BODIES];
+
 
 int main(int argc, char **argv) {
-    
+
+    body bodies[NUMBER_OF_BODIES];
+
     MPI_Init(&argc, &argv);
 
     int world_size;
@@ -30,6 +34,10 @@ int main(int argc, char **argv) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+    if(rank == 0) {
+        GenerateDebugData(NUMBER_OF_BODIES, bodies);
+    }
+    
     for(size_t i = 0 ; i < NUMBER_OF_BODIES; ++i ) 
     {
         float total_ax = 0.0f, total_ay = 0.0f;

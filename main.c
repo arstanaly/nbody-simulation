@@ -3,7 +3,6 @@
 #include <stdbool.h>
 
 #include <mpi.h>
-#include "ips_utils.h"
 
 typedef struct _body 
 {
@@ -15,7 +14,6 @@ typedef struct _body
 
 static const float DELTA_TIME = 0.2;
 static const int NUMBER_OF_BODIES = 50;
-static const int ITEMS_PER_PROCESS = NUMBER_OF_BODIES / ips_utils_get_number_of_cpu_cores();
 
 void integrate(body *body, float DELTA_TIME );
 void GenerateDebugData (int planetCount, *body bodies);
@@ -33,6 +31,8 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    static const int ITEMS_PER_PROCESS = NUMBER_OF_BODIES / world_size;
 
     if(rank == 0) {
         GenerateDebugData(NUMBER_OF_BODIES, bodies);
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 
     for(size_t i = 0 ; i < N; ++i )
     {
-        integrate(&bodies[i],DT);
+        integrate(&bodies[i], DELTA_TIME);
     }
     
     MPI_Finalize();
@@ -97,13 +97,13 @@ Vector2 CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *
     return acceleration;
 }
 
-
 void integrate(body *body) {
     body−>vx += body−>ax * DELTA_TIME ;
     body−>vy += body−>ay * DELTA_TIME ;
     body−>x += body−>vx * DELTA_TIME ;
     body−>y += body−>vy * DELTA_TIME ;
 }
+
 void GenerateDebugData (int planetCount) {
     const float accelerationScale = 100.0f;
     const float galacticPlaneY = 0.0f;

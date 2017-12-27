@@ -1,0 +1,5 @@
+input:
+
+output: number of bodies, time period for the simulation, Delta Time of the simulation,
+        initial configuration for each body printing the position, acceleration, and velocity vectors, mass of the body
+        all the acceleration vector components for x and y

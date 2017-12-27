@@ -9,10 +9,10 @@
 typedef struct _body 
 {
     int id;
-    float x, y; // p o s i t i o n
-    float ax, ay; // a c c e l e r a t i o n
-    float vx, vy; // v e l o c i t y
-    float mass; 
+    float x, y; //position
+    float ax, ay; //acceleration
+    float vx, vy; //velocity
+    float mass;
 } body;
 
 static const float DELTA_TIME = 0.2;

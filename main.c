@@ -5,18 +5,21 @@
 #include <time.h>
 
 #define PI 3.14159265358979323846
+
 typedef struct _body 
 {
-    float x , y ; // p o s i t i o n
-    float ax , ay ; // a c c e l e r a t i o n
-    float vx , vy ; // v e l o c i t y
-    float mass ; 
-} body ;
+    int id;
+    float x, y; // p o s i t i o n
+    float ax, ay; // a c c e l e r a t i o n
+    float vx, vy; // v e l o c i t y
+    float mass; 
+} body;
 
 static const float DELTA_TIME = 0.2;
 static const int NUMBER_OF_BODIES = 100;
 static const float SIMULATION_SOFTENING_LENTH = 100.0f;
 static const float SIMULATION_SOFTENING_LENTH_SQUARED = 10000.0f;
+static const float DURATION = 10.0f;
 
 body *GenerateDebugData (int NUMBER_OF_BODIES);
 void CalculateNewtonGravityAcceleration (body *a, body *b, float *ax, float *ay);
@@ -24,7 +27,19 @@ static void integratebodies();
 
 int main(int argc, char **argv) {
 
-    body *bodies;
+    body *bodies = GenerateDebugData(NUMBER_OF_BODIES);
+
+    printf("%d/n", NUMBER_OF_BODIES);
+    printf("%f/n", DURATION);
+    printf("%f/n", DELTA_TIME);
+    for(int i = 0; i < NUMBER_OF_BODIES; ++i)
+    {
+        printf("Body #%d\n", bodies[i].id);
+		printf("x = %f, y = %f\n", bodies[i].x, bodies[i].y);
+		printf("ax = %f, ay = %f\n", bodies[i].ax, bodies[i].ay);
+		printf("vx = %f, vy = %f\n", bodies[i].vx, bodies[i].vy);
+		printf("mass = %f\n\n", bodies[i].mass);
+    }
 
     MPI_Init(&argc, &argv);
 
@@ -32,11 +47,6 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    if(rank == 0) {
-        bodies = GenerateDebugData(NUMBER_OF_BODIES);
-        printf("%d/n",NUMBER_OF_BODIES);
-    }
     
     for(size_t i = 0 ; i < NUMBER_OF_BODIES; ++i ) 
     {
@@ -85,6 +95,7 @@ body *GenerateDebugData (int NUMBER_OF_BODIES) {
         float angle = ((float) i / NUMBER_OF_BODIES) * 2.0f * PI + ((rnd_val - 0.5f) * 0.5f);
 
         body *planet = (body *) malloc(sizeof(*planet));
+        planet->id = i;
 		planet->mass = (rand() + 0.5f) * 100000.0f;
 		planet->ax = 0;
 		planet->ay = 0;

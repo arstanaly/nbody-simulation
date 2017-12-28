@@ -117,7 +117,6 @@ body *GenerateDebugData (int NUMBER_OF_BODIES) {
     srand(time(NULL));
 
     const float accelerationScale = 100.0f;
-    const float galacticPlaneY = 0.0f;
 
     body *result = (body *) malloc(sizeof(*result) * NUMBER_OF_BODIES);
 
@@ -135,7 +134,7 @@ body *GenerateDebugData (int NUMBER_OF_BODIES) {
 		planet->vy = sin(angle) * accelerationScale * rand();
 
 		planet->x = (float)rand() / (float)(RAND_MAX);
-		planet->y = galacticPlaneY;
+		planet->y = (float)rand() / (float)(RAND_MAX);
 		result[i] = *planet;
     }
 

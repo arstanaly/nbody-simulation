@@ -34,17 +34,17 @@ int main(int argc, char **argv) {
     printf("%f/n", DELTA_TIME);
     for(int i = 0; i < NUMBER_OF_BODIES; ++i)
     {
-        printf("Body #%f\n", bodies[i].id);
-		printf("x = %f, y = %f\n", bodies[i].x, bodies[i].y);
-		printf("ax = %f, ay = %f\n", bodies[i].ax, bodies[i].ay);
-		printf("vx = %f, vy = %f\n", bodies[i].vx, bodies[i].vy);
-		printf("mass = %f\n\n", bodies[i].mass);
+        printf("Body #%f/n", bodies[i].id);
+		printf("x = %f, y = %f/n", bodies[i].x, bodies[i].y);
+		printf("ax = %f, ay = %f/n", bodies[i].ax, bodies[i].ay);
+		printf("vx = %f, vy = %f/n", bodies[i].vx, bodies[i].vy);
+		printf("mass = %f/n", bodies[i].mass);
     }
 
     MPI_Init(&argc, &argv);
 
 	MPI_Datatype MPI_BODY;
-	MPI_Type_contiguous(5, MPI_FLOAT, &MPI_BODY);
+	MPI_Type_contiguous(8, MPI_FLOAT, &MPI_BODY);
 	MPI_Type_commit(&MPI_BODY);
 
     int world_size;
